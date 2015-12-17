@@ -7,9 +7,10 @@ from invisibleroads_macros.disk import make_enumerated_folder_for, make_folder
 from invisibleroads_macros.log import format_summary
 from matplotlib import pyplot as plt
 from os.path import join
-from pandas import Period, read_pickle
+from pandas import DataFrame, Period, read_pickle
 from pysal.cg.kdtree import Arc_KDTree
 from pysal.cg.sphere import RADIUS_EARTH_KM
+from sklearn.linear_model import LinearRegression
 
 
 EARTH_RADIUS_IN_METERS = RADIUS_EARTH_KM * 1000
@@ -22,7 +23,17 @@ def run(
     t = read_pickle(join('datasets', 'nyc-traffic-injury-with-period.pkl'))
     t = _filter_by_dates(t, from_date, to_date)
     t = _filter_by_address(t, search_address, search_radius_in_meters)
-    d = [(
+    d = []
+    if target_date:
+        d.append((
+            'forecast_nyc_traffic_injury_table_path',
+            _save_forecast_nyc_traffic_injury_table(
+                target_folder, target_date, t)))
+    if 'Distance' in t.columns:
+        d.append((
+            'nearby_nyc_traffic_injury_table_path',
+            _save_nearby_nyc_traffic_injury_table(target_folder, t)))
+    d.extend([(
         'recent_nyc_traffic_injury_table_path',
         _save_recent_nyc_traffic_injury_table(target_folder, t)), (
         'worst_nyc_traffic_injury_table_path',
@@ -30,16 +41,12 @@ def run(
         'nyc_traffic_injury_summary_by_year_image_path',
         _plot_nyc_traffic_injury_summary_by_year(target_folder, t)), (
         'nyc_traffic_injury_summary_by_month_image_path',
-        _plot_nyc_traffic_injury_summary_by_month(target_folder, t))]
-    if 'Distance' not in t.columns:
-        return d
-    d.insert(0, (
-        'nearby_nyc_traffic_injury_table_path',
-        _save_nearby_nyc_traffic_injury_table(target_folder, t)))
+        _plot_nyc_traffic_injury_summary_by_month(target_folder, t))])
     return d
 
 
 def _filter_by_dates(t, from_date, to_date):
+    print('Filtering by dates...')
     if from_date:
         period = Period('%d-%02d' % (from_date.year, from_date.month))
         period_min = min(t.index)
@@ -56,6 +63,7 @@ def _filter_by_dates(t, from_date, to_date):
 
 
 def _filter_by_address(t, search_address, search_radius_in_meters):
+    print('Filtering by address...')
     if not search_address:
         return t
     search_location = GEOCODE(search_address)
@@ -75,7 +83,44 @@ def _filter_by_address(t, search_address, search_radius_in_meters):
     return t
 
 
+def _save_forecast_nyc_traffic_injury_table(target_folder, target_date, t):
+    print('Forecasting...')
+    target_year, target_month = target_date.year, target_date.month
+    t = t.reset_index()
+    bad_location_table = t.groupby([
+        'Longitude', 'Latitude',
+    ]).filter(lambda x: len(x) > 2)
+    injury_types = ['Total', 'Pedestrian', 'Bike', 'Vehicle']
+    rows = []
+    for xy, local_injury_table in bad_location_table.groupby([
+            'Longitude', 'Latitude']):
+        local_injury_table = local_injury_table[['Period'] + injury_types]
+        resampled_local_injury_table = local_injury_table.set_index(
+            'Period').resample('M', np.sum).fillna(0).reset_index()
+        xs = [x.to_timestamp().value for x in resampled_local_injury_table[
+            'Period']]
+        predicted_injury_counts = []
+        for injury_type in injury_types:
+            local_model = LinearRegression()
+            local_model.fit(
+                [[x] for x in xs],
+                resampled_local_injury_table[injury_type].values)
+            y = local_model.predict(Period(
+                year=target_year, month=target_month, freq='M',
+            ).to_timestamp().value)[0]
+            predicted_injury_counts.append(y if y > 0 else 0)
+        rows.append([
+            xy[0], xy[1], target_year, target_month] + predicted_injury_counts)
+    target_path = join(target_folder, 'forecast-nyc-traffic-injury.csv')
+    forecast_nyc_traffic_injury_table = DataFrame(rows, columns=[
+        'Longitude', 'Latitude', 'Year', 'Month',
+    ] + injury_types).sort(injury_types, ascending=False)
+    forecast_nyc_traffic_injury_table.to_csv(target_path, index=False)
+    return target_path
+
+
 def _save_nearby_nyc_traffic_injury_table(target_folder, t):
+    print('Saving nearby...')
     target_path = join(target_folder, 'nearby-nyc-traffic-injury.csv')
     t.sort([
         'Distance', 'Year', 'Month', 'Total',
@@ -84,6 +129,7 @@ def _save_nearby_nyc_traffic_injury_table(target_folder, t):
 
 
 def _save_recent_nyc_traffic_injury_table(target_folder, t):
+    print('Saving recent...')
     target_path = join(target_folder, 'recent-nyc-traffic-injury.csv')
     t.sort([
         'Year', 'Month', 'Total',
@@ -92,6 +138,7 @@ def _save_recent_nyc_traffic_injury_table(target_folder, t):
 
 
 def _save_worst_nyc_traffic_injury_table(target_folder, t):
+    print('Saving worst...')
     target_path = join(target_folder, 'worst-nyc-traffic-injury.csv')
     t.groupby([
         'Longitude', 'Latitude',
@@ -108,6 +155,7 @@ def _save_worst_nyc_traffic_injury_table(target_folder, t):
 
 def _plot_nyc_traffic_injury_summary_by_year(
         target_folder, nyc_traffic_injury_with_period_table):
+    print('Plotting summary by year...')
     nyc_traffic_injury_by_year_table = nyc_traffic_injury_with_period_table[[
         'Total', 'Pedestrian', 'Bike', 'Vehicle']].resample('A', np.sum)
     fig = plt.figure()
@@ -131,6 +179,7 @@ def _plot_nyc_traffic_injury_summary_by_year(
 
 
 def _plot_nyc_traffic_injury_summary_by_month(target_folder, t):
+    print('Plotting summary by month...')
     nyc_traffic_injury_by_month_table = t.groupby([
         'Year', 'Month',
     ]).aggregate(OrderedDict([
