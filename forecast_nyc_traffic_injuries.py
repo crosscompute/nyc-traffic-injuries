@@ -26,17 +26,17 @@ def run(
     d = []
     if target_date:
         d.append((
-            'forecast_nyc_traffic_injury_table_path',
+            'forecast_nyc_traffic_injury_geotable_path',
             _save_forecast_nyc_traffic_injury_table(
                 target_folder, target_date, t)))
     if 'Distance' in t.columns:
         d.append((
-            'nearby_nyc_traffic_injury_table_path',
+            'nearby_nyc_traffic_injury_geotable_path',
             _save_nearby_nyc_traffic_injury_table(target_folder, t)))
     d.extend([(
-        'recent_nyc_traffic_injury_table_path',
+        'recent_nyc_traffic_injury_geotable_path',
         _save_recent_nyc_traffic_injury_table(target_folder, t)), (
-        'worst_nyc_traffic_injury_table_path',
+        'worst_nyc_traffic_injury_geotable_path',
         _save_worst_nyc_traffic_injury_table(target_folder, t)), (
         'nyc_traffic_injury_summary_by_year_image_path',
         _plot_nyc_traffic_injury_summary_by_year(target_folder, t)), (
