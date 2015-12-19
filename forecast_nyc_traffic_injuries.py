@@ -115,6 +115,8 @@ def _save_forecast_nyc_traffic_injury_table(target_folder, target_date, t):
     forecast_nyc_traffic_injury_table = DataFrame(rows, columns=[
         'Longitude', 'Latitude', 'Year', 'Month',
     ] + injury_types).sort(injury_types, ascending=False)
+    forecast_nyc_traffic_injury_table['Weight'] = \
+        forecast_nyc_traffic_injury_table['Total']
     forecast_nyc_traffic_injury_table.to_csv(target_path, index=False)
     return target_path
 
@@ -122,25 +124,29 @@ def _save_forecast_nyc_traffic_injury_table(target_folder, target_date, t):
 def _save_nearby_nyc_traffic_injury_table(target_folder, t):
     print('Saving nearby...')
     target_path = join(target_folder, 'nearby-nyc-traffic-injury.csv')
-    t.sort([
+    t = t.sort([
         'Distance', 'Year', 'Month', 'Total',
-    ], ascending=[True, False, False, False]).to_csv(target_path, index=False)
+    ], ascending=[True, False, False, False])
+    t['Weight'] = t['Total']
+    t.to_csv(target_path, index=False)
     return target_path
 
 
 def _save_recent_nyc_traffic_injury_table(target_folder, t):
     print('Saving recent...')
     target_path = join(target_folder, 'recent-nyc-traffic-injury.csv')
-    t.sort([
+    t = t.sort([
         'Year', 'Month', 'Total',
-    ], ascending=False).to_csv(target_path, index=False)
+    ], ascending=False)
+    t['Weight'] = t['Total']
+    t.to_csv(target_path, index=False)
     return target_path
 
 
 def _save_worst_nyc_traffic_injury_table(target_folder, t):
     print('Saving worst...')
     target_path = join(target_folder, 'worst-nyc-traffic-injury.csv')
-    t.groupby([
+    t = t.groupby([
         'Longitude', 'Latitude',
     ]).aggregate(OrderedDict([
         ('Total', np.sum),
@@ -149,7 +155,9 @@ def _save_worst_nyc_traffic_injury_table(target_folder, t):
         ('Vehicle', np.sum),
     ])).sort([
         'Total', 'Pedestrian', 'Bike', 'Vehicle',
-    ], ascending=False).reset_index().to_csv(target_path, index=False)
+    ], ascending=False).reset_index()
+    t['Weight'] = t['Total']
+    t.to_csv(target_path, index=False)
     return target_path
 
 
