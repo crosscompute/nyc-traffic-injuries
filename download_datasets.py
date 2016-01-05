@@ -25,18 +25,15 @@ def download_datasets(target_folder):
     nyc_traffic_injury_table.to_msgpack(
         nyc_traffic_injury_table_path, compress='blosc')
 
-    # nyc_traffic_injury_table = nyc_traffic_injury_table[:20]
-    dtypes = nyc_traffic_injury_table.dtypes
-
     print('Converting... (please be patient for more than 100 seconds)')
     nyc_traffic_injury_with_period_table = nyc_traffic_injury_table.apply(
         _add_period, axis=1)
     nyc_traffic_injury_with_period_table.set_index('Period', inplace=True)
-
     for column in nyc_traffic_injury_with_period_table.columns:
         index = list(nyc_traffic_injury_table.columns).index(column)
         nyc_traffic_injury_with_period_table[column] = \
-            nyc_traffic_injury_with_period_table[column].astype(dtypes[index])
+            nyc_traffic_injury_with_period_table[column].astype(
+                nyc_traffic_injury_table.dtypes[index])
     print(nyc_traffic_injury_with_period_table.dtypes)
 
     nyc_traffic_injury_with_period_table_path = \
