@@ -11,6 +11,8 @@ from pandas import DataFrame, Period
 
 
 def download_datasets(target_folder):
+    make_folder(target_folder)
+
     print('Downloading...')
     source_folder = 'http://www.nyc.gov/html/dot/downloads/misc'
     nyc_traffic_injury_shapefile_path = download(
@@ -86,8 +88,7 @@ def _add_period(row):
 if __name__ == '__main__':
     argument_parser = ArgumentParser()
     argument_parser.add_argument(
-        '--target_folder',
-        metavar='FOLDER', type=make_folder,
+        '--target_folder', metavar='FOLDER',
         default=join(dirname(abspath(__file__)), 'datasets'))
     args = argument_parser.parse_args()
     d = download_datasets(args.target_folder)
