@@ -7,7 +7,7 @@ from geopy.geocoders import GoogleV3
 from invisibleroads_macros.disk import make_enumerated_folder_for, make_folder
 from invisibleroads_macros.log import format_summary
 from matplotlib import pyplot as plt
-from os.path import join
+from os.path import exists, join
 from pandas import DataFrame, Period, read_pickle
 from pysal.cg.kdtree import Arc_KDTree
 from pysal.cg.sphere import RADIUS_EARTH_KM
@@ -22,6 +22,9 @@ GEOCODE = GoogleV3().geocode
 def run(
         target_folder, target_date, from_date, to_date,
         search_address, search_radius_in_meters):
+    if not exists('datasets'):
+        from download_datasets import download_datasets
+        download_datasets('datasets')
     t = read_pickle(join('datasets', 'nyc-traffic-injury-with-period.pkl'))
     t = _filter_by_dates(t, from_date, to_date)
     t = _filter_by_address(t, search_address, search_radius_in_meters)
