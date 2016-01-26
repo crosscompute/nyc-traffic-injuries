@@ -1,4 +1,5 @@
 Note that all injuries are from vehicle accidents (thanks to Hassan Adekoya)
 Consider updating dataset if it is out of date
 Consider using heat map via geoimage instead of geotable
+Consider reverting to geometryIO instead of fiona
 + Show pedestrian, bike, vehicle injuries on separate maps

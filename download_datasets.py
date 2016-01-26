@@ -59,7 +59,8 @@ def download(target_path, source_url):
 
 def prepare_nyc_traffic_injury_table(shapefile_path):
     collection = fiona.open(
-        '/injury_all_monthly.shp', vfs='zip://%s' % shapefile_path)
+        '/injury_all_monthly_shapefile/injury_all_monthly.shp',
+        vfs='zip://%s' % shapefile_path)
     rows, indices = [], []
     for d in collection:
         indices.append(int(d['id']))
