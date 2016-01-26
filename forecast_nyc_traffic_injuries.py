@@ -1,4 +1,7 @@
 import matplotlib
+matplotlib.use('Agg')
+
+
 import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -14,7 +17,6 @@ from pysal.cg.sphere import RADIUS_EARTH_KM
 from sklearn.linear_model import LinearRegression
 
 
-matplotlib.use('Agg')
 EARTH_RADIUS_IN_METERS = RADIUS_EARTH_KM * 1000
 GEOCODE = GoogleV3().geocode
 
