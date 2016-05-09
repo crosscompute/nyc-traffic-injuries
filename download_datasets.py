@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 
-import fiona
+import geometryIO
 import requests
 from argparse import ArgumentParser
 from invisibleroads_macros.disk import make_folder
@@ -58,24 +58,22 @@ def download(target_path, source_url):
 
 
 def prepare_nyc_traffic_injury_table(shapefile_path):
-    collection = fiona.open(
-        '/injury_all_monthly_shapefile/injury_all_monthly.shp',
-        vfs='zip://%s' % shapefile_path)
-    rows, indices = [], []
-    for d in collection:
-        indices.append(int(d['id']))
-        longitude, latitude = map(float, d['geometry']['coordinates'])
-        properties = d['properties']
-        year, month = int(properties['YR']), int(properties['MN'])
-        total_count = int(properties['Injuries'])
-        pedestrian_count = int(properties['PedInjurie'])
-        bike_count = int(properties['BikeInjuri'])
-        vehicle_count = int(properties['MVOInjurie'])
+    proj4, geometries, field_packs, field_definitions = geometryIO.load(
+        shapefile_path)
+    rows = []
+    for geometry, field_pack in zip(geometries, field_packs):
+        longitude, latitude = geometry.x, geometry.y
+        d = {k: v for v, (k, _) in zip(field_pack, field_definitions)}
+        year, month = int(d['YR']), int(d['MN'])
+        total_count = int(d['Injuries'])
+        pedestrian_count = int(d['PedInjurie'])
+        bike_count = int(d['BikeInjuri'])
+        vehicle_count = int(d['MVOInjurie'])
         rows.append([
             longitude, latitude, year, month,
             total_count, pedestrian_count, bike_count, vehicle_count,
         ])
-    return DataFrame(rows, index=indices, columns=[
+    return DataFrame(rows, columns=[
         'Longitude', 'Latitude', 'Year', 'Month',
         'Total', 'Pedestrian', 'Bike', 'Vehicle',
     ])
