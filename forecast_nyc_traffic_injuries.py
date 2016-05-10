@@ -1,7 +1,4 @@
 import matplotlib
-matplotlib.use('Agg')
-
-
 import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -15,6 +12,9 @@ from pandas import DataFrame, Period, read_pickle
 from pysal.cg.kdtree import Arc_KDTree
 from pysal.cg.sphere import RADIUS_EARTH_KM
 from sklearn.linear_model import LinearRegression
+
+
+matplotlib.use('Agg')
 
 
 EARTH_RADIUS_IN_METERS = RADIUS_EARTH_KM * 1000
@@ -46,16 +46,10 @@ def _filter_by_dates(t, from_date, to_date):
     print('Filtering by dates...')
     if from_date:
         period = Period('%d-%02d' % (from_date.year, from_date.month))
-        period_min = min(t.index)
-        if period < period_min:
-            period = period_min
-        t = t[period:]
+        t = t[t.index >= period]
     if to_date:
         period = Period('%d-%02d' % (to_date.year, to_date.month))
-        period_max = max(t.index)
-        if period_max < period:
-            period = period_max
-        t = t[:period]
+        t = t[t.index <= period]
     return t
 
 
